@@ -1,0 +1,476 @@
+---
+title: "Labor Force Participation of U.S. Men and Women, 1976–2021"
+subtitle: "Housework, Disability and Early Retirement and Their Contributions to Labor Force Nonparticipation"
+author: " Elena Stolpovsky, PhD"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+    code_folding: hide
+bibliography: references.bib
+link-citations: true
+nocite: | 
+   @ipums2020
+---
+
+<base target="_top"/>
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+	message = FALSE,
+	warning = FALSE
+)
+options(scipen = 999, digits = 2)
+
+```
+
+
+<!--[<font size="4">`r icons::fontawesome("github")`</font>](https://github.com/elenas70/us_labor_market_history)-->
+[<font size="4">`r icons::fontawesome("linkedin")`</font>](https://www.linkedin.com/in/estolpovsky/)
+[<font size="4">EconBlog</font>](https://elenas70.github.io/econblog/)
+
+### Changes in Labor Force Participation Since the 1970s
+
+The labor force participation rates of men and women were converging during 1976–2000, with labor force participation rate of men declining, and that of women rising rapidly. During 2000–2021 the rates for men and women moved approximately in parallel exhibiting a slightly negative trend and dipping in response to the Great Recession and the COVID Recession. 
+
+The gender gap in labor force participation rates fell from 33 percentage points in 1976 to 14 percentage points in 2000. After 2000 the gap between the labor force participation rates of men and women declined by only 3 percentage points, and was at 11 percentage points in 2021. 
+
+During 1976–1988 the proportion of women that chose not to enter the labor force due to housework responsibilities decreased rapidly. This explains the rise in the labor force participation rate of women during this period. The increase in disability and early retirement among working-age men and women since 1994 contributed to the fall in the labor force participation of men and to the stagnation for women in the later part of the 1976–2021 period. 
+
+The 2007–2009 recession had a prolonged effect on the labor market. Many workers faced unemployment, and some of them exited the labor force when their unemployment benefits expired. The lack of labor market opportunities limited the ability of workers to enter the labor force for the first time, re-enter the labor force after an employment gap, and change career paths. We can see these effects in the falling labor force participation rates for men and women from 2009 to mid 2010s. The economic recovery led to the rise in labor force participation rates during 2015–2020.
+
+The COVID pandemic, restrictions on businesses and school closures caused a sharp drop in labor force participation rates of 3 to 4 percentage points in April of 2020. The rates have partially recovered but were still about 2 percentage points below the pre-pandemic level in February 2021. The COVID recession may have a long-term impact on labor force participation similar to that of the Great Recession. When government unemployment benefit programs expire, men and women unable to find a job will be listed as out of the labor force, leading to a drop in labor force participation rates. 
+
+### The Data From the Monthly Current Population Survey
+
+The employment data come from the monthly [Current Population Survey (CPS)](https://cps.ipums.org) administered by the U.S. Census Bureau and the Bureau of Labor Statistics. The sample starts in 1976 when the data is consistently available. I calculate the labor force participation rates for working-age civilian noninstitutionalized individuals, where working age is 16⁠–64. Bureau of Labor Statistics typically reports labor force participation rates for the adult civilian noninstitutionalized population, or people age 16 or older. I focus on working-age individuals to reduce the impact of population aging on the trends of interest.
+
+All rates are calculated using individual-level weights included in the CPS data. Weighting the contribution of individual responses to the aggregate rate corrects for oversampling or undersampling in a particular geographic area, in a given survey month, or from a particular subset of a population. Weighting individual responses ensures that the aggregate rates are representative of the U.S. population. The methodology of calculating rates with weights is described in my analysis of the labor market changes during the COVID pandemic [@Stolpovsky12021].
+
+### Seasonally Adjusted Labor Force Participation Rates for Men and Women
+
+Figure 1 and Table 1 show the seasonally adjusted labor force participation rates for men and women. Seasonal adjustment removes seasonal fluctuations from the data allowing for easier year-over-year comparisons. I describe the seasonal adjustment model and present its findings in the [Appendix](#appendix).
+
+Labor force participation rate of working-age men declined from 88% to 82% between 1980 and February 2020. Labor force participation rate of working-age women was 55% in 1976, peaked at 73% in 1998 and then stagnated, ending at 72% in early 2020. The COVID-19 recession led to a dip in labor force participation rates by 3 percentage points for men and 4 percentage points for women in April 2020. By February 2021 the rates have partially recovered but were still 2 percentage points below pre-COVID levels for both sexes.
+
+```{r include=FALSE}
+# # I generate the tables from the raw CPS data first, save them, and then load them to create the graphs and tables. This reduces the time to generate the html output.
+
+# library(ipumsr)
+# memory.limit(10000000)
+# ddi <- read_ipums_ddi("cps_00017.xml")
+# d <- read_ipums_micro(ddi)
+```
+
+```{r message=FALSE, warning=FALSE}
+# library(sjlabelled)
+# library(tidyverse)
+# library(kableExtra)
+# library(formattable)
+# library(purrr)
+# library(zoo)
+# 
+# d <- d %>%
+#   remove_all_labels() %>%  #labels slow down data processing
+#   select(-ASECFLAG) %>%
+#   filter(EMPSTAT != 1)  #excluding military personnel. The CPS weight on military personnel is 0 as they are not part of the core employment surveys. N=72,711,369
+# 
+# d <- d %>%
+#   select(-CPSID,-CPSIDP) %>% mutate(
+#     famid = SERIAL * 100 + YEAR * 10 + MONTH,
+#     #famid is is unique for each household and each year &month
+#     id = SERIAL * 1000 + YEAR * 100 + MONTH * 10 + PERNUM,
+#     #id is unique for each individual,year and month
+#     sex = ifelse(SEX == 1, "men", "women"),
+#     married_spouse_present = (MARST == 1) * 1,
+#     married = (MARST %in% c(1, 2)) * 1,
+#     unemployed = (EMPSTAT %in% c(20, 21, 22)) * 1,
+#     employed = (EMPSTAT %in% c(1, 10, 12)) * 1,
+#     housework = (EMPSTAT == 31) * 1,
+#     unable_to_work = (EMPSTAT == 32) * 1,
+#     school = (EMPSTAT == 33) * 1,
+#     NILF_other_reason = (EMPSTAT == 34 |
+#                            EMPSTAT == 35) * 1,
+#     #NILF: other reason OR unpaid/ less than 15 hrs (no men and up to 0.2% of women choose this option)
+#     retired = (EMPSTAT == 36) * 1,
+#     physical_difficulty = (DIFFANY == 2) * 1,
+#     retired = (EMPSTAT == 36) * 1,
+#     lfp = (LABFORCE == 2) * 1,
+#     age16plus = (AGE > 15) * 1,
+#     workingage = (AGE < 65 &
+#                     AGE > 17) * 1,
+#     #age 16 to 64
+#     family_income_category = gsub("995|996|997|999", NA, FAMINC),
+#     iweight = WTFINL * n() / sum(WTFINL)
+#   )
+# 
+# dmonthly <-
+#   d %>% filter(workingage == 1) %>% group_by(year = YEAR, month = MONTH, sex) %>% summarize(
+#     #Age 16-64. Limit the impact of changing age distribution of lfp rates
+#     lfp_rate = percent(sum(lfp * iweight) / sum(iweight), 1),
+#     unemployment_rate = percent(sum(unemployed * iweight) / sum(lfp * iweight), 1),
+#     employment_rate = percent(sum(employed * iweight) / sum(iweight), 1),
+#     disability_rate = percent(sum(unable_to_work * iweight) / sum(iweight), 1),
+#     physical_difficulty_rate = percent(sum(physical_difficulty * iweight) / sum(iweight), 1),
+#     housework_rate = percent(sum(housework * iweight) / sum(iweight), 1),
+#     school_rate = percent(sum(school * iweight) / sum(iweight), 1),
+#     other_reason_rate = percent(sum(NILF_other_reason * iweight) / sum(iweight), 1),
+#     retired_rate = percent(sum(retired * iweight) / sum(iweight), 1),
+#   ) %>% pivot_wider(
+#     names_from = sex,
+#     values_from = c(
+#       lfp_rate,
+#       unemployment_rate,
+#       employment_rate,
+#       disability_rate,
+#       physical_difficulty_rate,
+#       housework_rate,
+#       school_rate,
+#       other_reason_rate,
+#       retired_rate
+#     )
+#   )
+# 
+# 
+# dmonthly$time <-
+#   seq(from = as.Date("1976/1/1"),
+#       to = as.Date("2021/2/1"),
+#       by = "month") %>% as.yearmon()
+# 
+# save(dmonthly, file = "dmonthly.RData")
+# 
+# NA_Table <-
+#   d %>% group_by(YEAR) %>% summarise_all(~ percent(sum(is.na(.)) / n(), 0)) %>% #calculate number of NAs by year
+#   select_if(~ sum(.) > 0) %>% # only include columns that have NAs
+#   mutate_all(~ gsub("NaN|Inf|-Inf", NA, .))
+# 
+# NA_Table #Summary of NAs for each variable by year
+
+```
+
+
+```{r, message=FALSE, warning=FALSE}
+# # Seasonal adjustment of labor force participation, employment, and unemployment rates.
+
+# # Outliers automatically detected:
+# # Additive Outlier (AO)
+# # Innovation Outlier (IO)
+# # Level Shift (LS)
+# # Temporary change (TC)
+# # Seasonal Level Shift (SLS)
+
+# library(seasonal) #interface between R and X-13ARIMA-SEATS, the seasonal adjustment software developed by the United States Census Bureau.https://cran.r-project.org/web/packages/seasonal/vignettes/seas.pdf
+# load("dmonthly.RData")
+# 
+# dsmonthly <-
+#   lapply(dmonthly[, c(3:8)], function(s)
+#     seas(ts(
+#       s, start = 1976, frequency = 12
+#     ), x11 = ""))#1The X-11 method is used by the US Bureau of Labor Statistics (BLS), in order to calculate official seasonally adjusted unemployment numbers. The numbers obtained in the examples above will  not match the BLS numbers, for various reasons. One reason is that the BLS is adjusting unemployment by industry, before aggregating them. The BLS also applies a more sophisticated modeling of trading days and outliers. For details, see US Bureau of Labor Statistics (2016).
+# save(dsmonthly, file = "dsmonthly.RData")
+# 
+# dmonthly[, c(3:8)] <-
+#   lapply(dsmonthly, function(s)
+#     final(s)) #replace original series with seasonally adjusted series
+# save(dmonthly, file = "dmonthly_seasonally_adjusted.RData")
+```
+
+```{r message=FALSE, warning=FALSE}
+library(zoo)
+library(xts)
+library(lubridate)
+library(stringr)
+library(ggthemes)
+library(plotly)
+library(tidyverse)
+
+load("dmonthly_seasonally_adjusted.RData") #the data is first generated and then loaded to generate html output quickly.
+
+dmonthly <- dmonthly %>%
+  mutate(
+    lfp_rate_men = formattable::percent(as.numeric(lfp_rate_men), 1),
+    lfp_rate_women = formattable::percent(as.numeric(lfp_rate_women), 1)
+  )
+
+p <-
+  ggplot(dmonthly, aes(time)) + geom_line(aes(
+    y = lfp_rate_men,
+    linetype = "Labor Force Participation Rate",
+    color = "Men"
+  )) +
+  
+  # geom_line(aes(
+  #   y = employment_rate_men,
+  #   linetype = "Employment rate",
+  #   color = "Men"
+  # )) +
+  geom_line(aes(
+    y = lfp_rate_women,
+    linetype = "Labor Force Participation Rate",
+    color = "Women"
+  )) +
+  # geom_line(aes(
+  #   y = employment_rate_women,
+  #   linetype = "Employment Rate",
+  #   color = "Women"
+  # ))   +
+  
+  labs(title = "Fig 1. Seasonally Adjusted Labor Force Participation Rates by Sex, 1976-2021") +
+  scale_y_continuous('Rate', labels = scales::percent_format()) +
+  xlab("") +
+  theme(legend.title = element_blank())
+
+
+ggplotly(p,
+         tooltip = c("y", "x"),
+         height = 400,
+         width = 800)
+```
+
+#### Table 1. Seasonally Adjusted Labor Force Participation Rates for Men and Women Ages 16-64, 1976-2021
+
+
+```{r message=FALSE, warning=FALSE}
+library(formattable)
+library(kableExtra)
+library(DT)
+
+tab <-
+  dmonthly  %>% mutate(
+    year = as.integer(year),
+    month_num = month,
+    month = month.abb[month],
+    lfp_rate_men = round(as.numeric(lfp_rate_men), 3),
+    lfp_rate_women = round(as.numeric(lfp_rate_women), 3)
+  ) %>% select(c(year, month_num, month, lfp_rate_men, lfp_rate_women))
+
+
+
+DT::datatable(
+  tab,
+  colnames = c(
+    "Year",
+    "Month Number",
+    "Month",
+    "Male Labor Force Participation Rate",
+    "Female Labor Force Participation Rate"
+  ),
+  rownames = FALSE,
+  filter = "top",
+  extensions = 'Buttons',
+  
+  options = list(dom = 'Blfrtip',
+                 buttons = c('copy', 'csv', 'excel'))
+) %>% formatPercentage(c("lfp_rate_men", "lfp_rate_women"), 1)
+
+```
+*Source: Current Population Survey, 1976–2021*
+
+
+### Reasons for Nonparticipation in the Labor Force
+
+Figures 2 and 3 show the rates of being out of the labor force for working-age men and women, respectively. The CPS asks respondents about their employment status. Individuals not in the labor force can respond that they are doing housework, attending school, that they are retired or unable to work, or that they are not in the labor force for "other reasons". The plots display the rates of labor force nonparticipation due to housework, disability, being in school, retirement and other reasons for men and women. All rates in Figures 2 and 3 are not seasonally adjusted.
+
+
+The frequencies of responses shift abruptly in 1989 and 1994, likely due to a change in survey design. The categories of responses: "not in the labor force, engaged in schoolwork" and "not in the labor force, engaged in housework" disappeared in 1989, with the number of responses in the "other" category shifting up in 1989. During 1989⁠–1993 all individuals out of the labor force chose the response "not in labor force, other". Starting 1994 the response "unable to work" reappeared, and the new response "retired" appeared among working-age individuals. Notwithstanding the shifts in frequencies of responses in 1989 and 1994, the breakdown of nonparticipation into categories reveals important trends.
+
+The most drastic change in labor supply behavior since 1976 is the decline in the proportion of working-age women that are out of the labor force due to housework — from 39% in 1976 to to 23% in 1988. This decline fully explains the rise in the labor force participation rate of women during this period.  Unfortunately, the responses in this category disappeared starting 1989, and we do not know whether housework continued to decline in importance as the reason for women to be out of the labor force. In 1976⁠–1988 period a small percentage of working-age men, 0.2⁠–0.4%, also stated that they were out of the labor force due to housework. 
+
+During 1976⁠–2010 the rates of being out of work due to disability increased from 2.5 to 5.5% for working-age men and from 0.7 to 5.1% for working-age women. The peaks in disability rates occurred in 2015 at 6.3% for both men and women.The rising disability rates contributed to the fall in the labor force participation of men, and stagnation in the labor force participation rate of women, in particular during 1994⁠–2021.
+
+The rate of retirement for working-age individuals increased since 1994 from 3.2 to 3.8% for men, and from 4 to 5.4% for women. Early retirement is the second known contributor, after increased disability, to the fall in the labor force participation rate of men and stagnation in the labor force participation rate of women since 1994. Prior to 1994 no working-age respondents classified themselves as retired. This occurred due to the way the question was presented or other elements of survey design. Therefore, we cannot conclude about the prevalence of early retirement prior to 1994.
+
+Throughout most of 1976–2021 about half of the working-age population out of the labor force did not participate in the labor for reasons other than being disabled, retired, attending school or engaging in housework. In April 2020 the 3% jump in nonparticipation in the labor force for working-age men and women came entirely from the rise in the 'other reason' category. The rate of nonparticipation due to other reasons exhibits substantial seasonality while the rates of nonparticipation due to early retirement and disability change more gradually. Social scientists and policy makers trying to understand labor force participation in the U.S. would benefit from survey data that offers a greater choice of possible reasons for being out of the labor force.
+
+
+```{r message=FALSE, warning=FALSE}
+load("dmonthly.RData")
+dmonthly$not_in_labor_force_rate_men = 1 - dmonthly$lfp_rate_men
+p <-
+  ggplot(dmonthly, aes(time))  +
+  
+  geom_line(
+    aes(y = not_in_labor_force_rate_men, color = "Not_in_Labor_Force_Rate")
+  ) +
+  geom_line(aes(y = housework_rate_men, color = "Housework_Rate")) +
+  
+  geom_line(aes(y = disability_rate_men, color = "Disability_Rate"))  +
+  
+  geom_line(aes(y = school_rate_men, color = "School_Rate")) +
+  
+  geom_line(aes(y = retired_rate_men, color = "Retired_Rate")) +
+  
+  geom_line(aes(y = other_reason_rate_men, color = "Other_Reasons_Rate")) +
+  labs(title = "Fig 2. Working-Age Men Not in the Labor Force, 1976–2021") +
+  xlab("") +
+  scale_y_continuous('Rate', labels = scales::percent_format()) +
+  theme(legend.title = element_blank())
+
+
+ggplotly(p,
+         tooltip = c("y", "x"),
+         height = 400,
+         width = 800) 
+```
+
+#### Table 2. Working-Age Men Not in the Labor Force by Reported Reasons, 1976–2021
+
+
+```{r message=FALSE, warning=FALSE}
+tab <-
+  dmonthly  %>% mutate(
+    year = as.integer(year),
+    month_num = month,
+    month = month.abb[month],
+    not_in_labor_force_rate_men=round(as.numeric(not_in_labor_force_rate_men), 3),
+    housework_rate_men=round(as.numeric(housework_rate_men), 3),
+      disability_rate_men=round(as.numeric(disability_rate_men), 3),
+      retired_rate_men=round(as.numeric(retired_rate_men), 3),
+      school_rate_men=round(as.numeric(school_rate_men), 3),
+      other_reason_rate_men=round(as.numeric(other_reason_rate_men), 3)) %>% select(c(year, month_num, month, not_in_labor_force_rate_men,housework_rate_men,disability_rate_men,retired_rate_men,school_rate_men,other_reason_rate_men))
+
+DT::datatable(
+  tab,
+  colnames = c(
+    "Year",
+    "Month Number",
+    "Month",
+    "Not in Labor Force Rate",
+    "Housework Rate",
+    "Disability Rate",
+    "Early Retirement Rate",
+    "In School Rate",
+    "Other Reasons Rate"),
+  rownames = FALSE,
+  filter = "top",
+  extensions = 'Buttons',
+  
+  options = list(dom = 'Blfrtip',
+                 buttons = c('copy', 'csv', 'excel'))
+) %>% formatPercentage(c("not_in_labor_force_rate_men","housework_rate_men","disability_rate_men","retired_rate_men","school_rate_men","other_reason_rate_men"), 1)
+
+```
+*Source: Current Population Survey, 1976–2021*
+
+
+
+
+```{r message=FALSE, warning=FALSE}
+dmonthly$not_in_labor_force_rate_women = 1 - dmonthly$lfp_rate_women
+p <-
+  ggplot(dmonthly, aes(time))  +
+  
+  geom_line(
+    aes(y = not_in_labor_force_rate_women, color = "Not_in_Labor_Force_Rate")
+  ) +
+  geom_line(aes(y = housework_rate_women, color = "Housework_Rate")) +
+  
+  geom_line(aes(y = disability_rate_women, color = "Disability_Rate"))  +
+  
+  geom_line(aes(y = school_rate_women, color = "School_Rate")) +
+  
+  geom_line(aes(y = retired_rate_women, color = "Retired_Rate")) +
+  
+  geom_line(aes(y = other_reason_rate_women, color = "Other_Reasons_Rate")) +
+  labs(title = "Fig 3. Working-Age Women Not in the Labor Force, 1976–2021") +
+  scale_y_continuous('Rate', labels = scales::percent_format()) +
+  xlab("") +
+  theme(legend.title = element_blank())
+
+
+ggplotly(p,
+         tooltip = c("y", "x"),
+         height = 400,
+         width = 800)
+```
+
+#### Table 3. Working-Age Women Not in the Labor Force by Reported Reasons, 1976–2021
+
+
+```{r}
+tab <-
+  dmonthly  %>% mutate(
+    year = as.integer(year),
+    month_num = month,
+    month = month.abb[month],
+    not_in_labor_force_rate_women=round(as.numeric(not_in_labor_force_rate_women), 3),
+    housework_rate_women=round(as.numeric(housework_rate_women), 3),
+      disability_rate_women=round(as.numeric(disability_rate_women), 3),
+      retired_rate_women=round(as.numeric(retired_rate_women), 3),
+      school_rate_women=round(as.numeric(school_rate_women), 3),
+      other_reason_rate_women=round(as.numeric(other_reason_rate_women), 3)) %>% select(c(year, month_num, month, not_in_labor_force_rate_women,housework_rate_women,disability_rate_women,retired_rate_women,school_rate_women,other_reason_rate_women))
+
+DT::datatable(
+  tab,
+  colnames = c(
+    "Year",
+    "Month Number",
+    "Month",
+    "Not in Labor Force Rate",
+    "Housework Rate",
+    "Disability Rate",
+    "Early Retirement Rate",
+    "In School Rate",
+    "Other Reasons Rate"),
+  rownames = FALSE,
+  filter = "top",
+  extensions = 'Buttons',
+  
+  options = list(dom = 'Blfrtip',
+                 buttons = c('copy', 'csv', 'excel'))
+) %>% formatPercentage(c("not_in_labor_force_rate_women","housework_rate_women","disability_rate_women","retired_rate_women","school_rate_women","other_reason_rate_women"), 1)
+
+
+```
+*Source: Current Population Survey, 1976–2021*
+
+### Appendix: Seasonal Adjustment of the Series {#appendix}
+
+The monthly employment and unemployment numbers calculated by the U.S. Bureau of Labor Statistics and reported in the news are typically seasonally adjusted. Seasonal adjustment attempts to measure and remove the influences of predictable seasonal patterns to meaningfully compare monthly data.
+
+I estimate the time series models of male and female labor force participation rates to identify the seasonal components of the series using the R package [seasonal](https://cran.r-project.org/web/packages/seasonal) [@seasonal2018]. The package interfaces with the X-13 ARIMA-SEATS software developed by the US Census Bureau. The seasonal adjustment methodology is described in @bls2018. This methodology is used by the Bureau of Labor Statistics to calculate official seasonally adjusted unemployment numbers.
+
+The models identified a negative level shift in the labor force participation rates of men and women in April 2020, marking this month as a structural break. I plot the output of the model for male labor force participation rate to illustrate the seasonal adjustment process.
+
+ Figure 4 shows the original male labor force participation rate (black) and the seasonally adjusted series (red). LS refers to the level shifts.The level shift in April 2020 is the largest in absolute size. 
+
+
+```{r}
+library(seasonal)
+load("dsmonthly.RData")
+plot(dsmonthly$lfp_rate_men, main = "Fig 4. Male LFP Rate: Original and Seasonally Adjusted", ylab = "Male Labor Force Participation Rate")
+```
+
+*Source: Current Population Survey, 1976–2021*
+
+Figure 5 shows the detrended seasonal component (red) and the combined seasonal and irregular component (blue) of the male labor force participation rate. The straight lines are the average seasonal components over the whole sample period. Labor force participation peaks in summer, around July, and is smallest in winter, in particular, in January. The summer peak became weaker during 1976–2021, and the winter trough increased.
+
+
+
+```{r}
+monthplot(
+  dsmonthly$lfp_rate_men,
+  labels = c(
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec"
+  ),
+  main = "Fig. 5. Seasonal and Irregular Components of Male LFP Rate"
+)
+```
+
+*Source: Current Population Survey, 1976–2021*
+
+<a href="#top">Back to top</a>
+
+### References
+
+<!--In the [Part II of the analysis](https://rpubs.com/elenas70/labormarket2020part2) I examine the geographic distribution of the rise in unemployment throughout 2020 and discuss the reasons why some regions have been more impacted than others].-->

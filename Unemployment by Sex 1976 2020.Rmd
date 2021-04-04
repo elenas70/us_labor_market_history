@@ -1,0 +1,355 @@
+---
+title: "Unemployment Rates of U.S. Men and Women 1976–2021"
+subtitle: "The COVID Recession in Perspective"
+author: "Elena Stolpovsky"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+    code_folding: hide
+bibliography: references.bib
+link-citations: true
+nocite: | 
+   @Stolpovsky12021
+---
+
+<base target="_top"/>
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+	message = FALSE,
+	warning = FALSE
+)
+options(scipen = 999, digits = 2)
+
+```
+
+
+<!--[<font size="4">`r icons::fontawesome("github")`</font>](https://github.com/elenas70/us_labor_market_history)-->
+[<font size="4">`r icons::fontawesome("linkedin")`</font>](https://www.linkedin.com/in/estolpovsky/)
+[<font size="4">EconBlog</font>](https://elenas70.github.io/econblog/)
+
+The 2020 recession was different from past U.S. recessions in its impact on employment opportunities for men and women. In 2020 unemployment rates rose more rapidly, reached higher levels, and fell quicker than during any of the the past recessions since 1976. In 2020 peak unemployment rate was higher for women than for men. Past recessions since 1976 were associated with higher unemployment among men. In February 2021 seasonally adjusted unemployment rates for both men and women converged at about 6%, 2–3 percentage points above the pre-pandemic levels. 
+
+### Current Population Survey Data and Methodology
+
+The employment data come from the monthly Current Population Survey (CPS) administered by the U.S. Census Bureau and the Bureau of Labor Statistics [-@ipums2020]. The sample starts in 1976 when the CPS data is consistently available. 
+
+The Bureau of Labor Statistics defines **unemployment rate** as the percentage of those in the labor force that are unemployed [-@bls2015]. Labor force includes civilian noninstitutional population age 16 or older. I calculate unemployment rates for the *working-age* population, where working age is 16–64. I limit the analysis to the working-age population to reduce the impact of population aging on unemployment rates. Unemployment rates among the working-age population are 0.3–0.5 percentage points higher than unemployment rates for the whole adult population, suggesting that unemployment is slightly higher among labor force participants over age 64.
+
+The rates are calculated using individual-level weights included in survey data. Weighting the contribution of individual responses to the aggregate rate corrects for oversampling or undersampling in a particular geographic area, in a given survey month, or from a particular subset of a population. Weighting individual responses ensures that the aggregate rates are representative of the U.S. population. The methodology of calculating rates with weights is described in my analysis of the labor market changes during the COVID pandemic ([2021](https://rpubs.com/elenas70/labormarket2020part1)). 
+
+The rates are seasonally adjusted to remove regular seasonal fluctuations from the data and allow for more meaningful analysis of long-term trends. I describe the seasonal adjustment process based on the estimation of a time series model in the [Appendix](#appendix).
+
+
+
+### Unemployment Rates of Men and Women during 1976–2021
+
+Figure 1 shows the seasonally adjusted unemployment rates for men and women. Unemployment rates fluctuate with the business cycles and have a negative long-term trend. Female unemployment rate was 2 percentage points higher than male unemployment rate at the end of the 1970s and experienced a greater decline during the period. 
+
+The National Bureau of Economic Research dates business cycles using high unemployment as one of the indicators of recessions and depressions [@nber2020]. Unemployment rates move in the opposite direction from most other business cycle indicators, such as gross domestic product or personal incomes, and are often a lagging indicator of the economy. 
+
+The 1976–2021 period included the 1980 and 1982 recessions, the 1990–91 recession, the 2001 recession related to the dot-com bubble and 9/11, the 2008–2009 Great Recession, and the 2020 COVID-19 recession. The 2020 recession is characterized by the highest unemployment rates since the Great Depression. In April 2020 17% of working-age women in the labor force and 13% of working-age men in the labor force were unemployed. The spike in unemployment coincided with a drop in labor force participation by 2-3 percentage points [@Stolpovsky32021].
+
+The increase in unemployment in 2020 is unprecedented in its abruptness. Before 2020 unemployment rates were lagging indicators of recessions and reached their peaks at the end of or after the officially-dated recessions. In 2020 unemployment peaked at the beginning of the recession and was one of the triggers of the overall economic decline rather than its consequence. 
+
+During past recessions unemployment affected men more then women. For instance, after the 2008-2009 Great Recession male unemployment rate reached 11%, while female unemployment rate was up to 9%. The 2020 recession was different. In April 2020 unemployment rate among women was 4 percentage points above that of men. 
+
+The rapid increase in unemployment was followed by a similarly rapid recovery. The male and female labor force participation rates converged and were at about 6% in February 2021. Seasonal adjustment of unemployment rates may masks the signs of the slowdown in the recovery in the labor market since the end of 2020 as the persistently high unemployment is attributed to the effect of winter seasonality. See @Stolpovsky12021 for the unadjusted unemployment and labor force participation rates during 2020–2021. 
+
+```{r include=FALSE}
+#I generate the tables from the raw CPS data first, save them, and then load them to create the graphs and tables. This reduces the time to generate the html output.
+
+# library(ipumsr)
+# memory.limit(10000000)
+# ddi <- read_ipums_ddi("cps_00013.xml")
+# d <- read_ipums_micro(ddi) # 72,853,440 observations
+```
+
+```{r message=FALSE, warning=FALSE}
+# library(sjlabelled)
+# library(tidyverse)
+# library(kableExtra)
+# library(formattable)
+# library(purrr)
+#library(zoo)
+#
+# d <- d %>%
+#   remove_all_labels() %>%  #labels slow down data processing
+#   select(-ASECFLAG) %>%
+#   filter(EMPSTAT != 1)  #excluding military personnel. The CPS weight on military personnel is 0 as they are not part of the core employment surveys. N=72,711,369
+#
+# d <- d %>%
+#   select(-CPSID, -CPSIDP) %>% mutate(
+#     month = month.abb[MONTH],
+#     famid = SERIAL * 100 + YEAR * 10 + MONTH,
+#     #famid is is unique for each household and each year &month
+#     id = SERIAL * 1000 + YEAR * 100 + MONTH * 10 + PERNUM,
+#     #id is unique for each individual,year and month
+#     sex = ifelse(SEX == 1, "men", "women"),
+#     married_spouse_present = (MARST == 1) * 1,
+#     married = (MARST %in% c(1, 2)) * 1,
+#     unemployed = (EMPSTAT %in% c(20, 21, 22)) * 1,
+#     employed = (EMPSTAT %in% c(1, 10, 12)) * 1,
+#     housework = (EMPSTAT == 31) * 1,
+#     unable_to_work = (EMPSTAT == 32) * 1,
+#     school = (EMPSTAT == 33) * 1,
+#     NILF_other_reason = (EMPSTAT == 34 |
+#                            EMPSTAT == 35) * 1,
+#     #NILF: other reason OR unpaid/ less than 15 hrs (no men and up to 0.2% of women choose this option)
+#     retired = (EMPSTAT == 36) * 1,
+#     physical_difficulty = (DIFFANY == 2) * 1,
+#     retired = (EMPSTAT == 36) * 1,
+#     lfp = (LABFORCE == 2) * 1,
+#     age16plus = (AGE > 15) * 1,
+#     workingage = (AGE < 65 &
+#                     AGE > 17) * 1,
+#     #age 16 to 64
+#     family_income_category = gsub("995|996|997|999", NA, FAMINC),
+#     iweight = WTFINL * n() / sum(WTFINL)
+#   )
+#
+# dmonthly <-
+#   d %>% filter(workingage == 1) %>% group_by(year = YEAR, month = MONTH, sex) %>% summarize(
+#     #Age 16-64. Limit the impact of changing age distribution of lfp rates
+#     lfp_rate = percent(sum(lfp * iweight) / sum(iweight), 1),
+#     unemployment_rate = percent(sum(unemployed * iweight) / sum(lfp * iweight), 1),
+#     employment_rate = percent(sum(employed * iweight) / sum(iweight), 1),
+#     disability_rate = percent(sum(unable_to_work * iweight) / sum(iweight), 1),
+#     physical_difficulty_rate = percent(sum(physical_difficulty * iweight) / sum(iweight), 1),
+#     housework_rate = percent(sum(housework * iweight) / sum(iweight), 1),
+#     school_rate = percent(sum(school * iweight) / sum(iweight), 1),
+#     other_reason_rate = percent(sum(NILF_other_reason * iweight) / sum(iweight), 1),
+#     retired_rate = percent(sum(retired * iweight) / sum(iweight), 1),
+#   ) %>% pivot_wider(
+#     names_from = sex,
+#     values_from = c(
+#       lfp_rate,
+#       unemployment_rate,
+#       employment_rate,
+#       disability_rate,
+#       physical_difficulty_rate,
+#       housework_rate,
+#       school_rate,
+#       other_reason_rate,
+#       retired_rate
+#     )
+#   )
+#
+#
+# dmonthly$time <-
+#   seq(from = as.Date("1976/1/1"),
+#       to = as.Date("2020/12/1"),
+#       by = "month")%>% as.yearmon()
+#
+# save(dmonthly, file = "dmonthly.RData")
+#
+# NA_Table <-
+#   d %>% group_by(YEAR) %>% summarise_all( ~ percent(sum(is.na(.)) / n(), 0)) %>% #calculate number of NAs by year
+#   select_if( ~ sum(.) > 0) %>% # only include columns that have NAs
+#   mutate_all( ~ gsub("NaN|Inf|-Inf", NA, .))
+#
+# save(NA_Table, file = "NA_Table.RData")
+#
+# Mins <-
+#   d %>% group_by(YEAR) %>% summarise_all( ~ min(., na.rm = TRUE)) %>%  #can also use summarise(across(c(1:25),min))
+#   mutate_all( ~ gsub("NaN|Inf|-Inf", NA, .))
+# save(Mins, file = "Mins.RData")
+#
+# Averages <-
+#   d %>% group_by(YEAR) %>% summarise_all( ~ mean(., na.rm = TRUE)) %>%
+#   mutate_all( ~ gsub("NaN|Inf|-Inf", NA, .))
+# save(Averages, file = "Averages.RData")
+#
+# Maxes <-
+#   d %>% group_by(YEAR) %>% summarise_all( ~ max(., na.rm = TRUE)) %>%
+#   mutate_all( ~ gsub("NaN|Inf|-Inf", NA, .))
+# save(Maxes, file = "Maxes.RData")
+#
+# table_input <-
+#   NA_Table %>% kbl(caption = "") %>% kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+#
+# scroll_box(
+#   table_input,
+#   height = "290px",
+#   width = NULL,
+#   box_css = "border: 1px solid #ddd; padding: 5px; ",
+#   fixed_thead = T
+# )
+
+```
+
+
+```{r, message=FALSE, warning=FALSE}
+# Seasonal adjustment of labor force participation, employment, and unemployment rates.
+# Outliers automatically detected:
+# Additive Outlier (AO)
+# Innovation Outlier (IO)
+# Level Shift (LS)
+# Temporary change (TC)
+# Seasonal Level Shift (SLS)
+
+# library(seasonal) #interface between R and X-13ARIMA-SEATS, the seasonal adjustment software developed by the United States Census Bureau.https://cran.r-project.org/web/packages/seasonal/vignettes/seas.pdf
+# load("dmonthly.RData")
+# dsmonthly <-
+#   lapply(dmonthly[, c(3:8)], function(s)
+#     seas(ts(
+#       s, start = 1976, frequency = 12
+#     ), x11 = ""))#1The X-11 method is used by the US Bureau of Labor Statistics (BLS), in order to calculate official seasonally adjusted unemployment numbers. The numbers obtained in the examples above will  not match the BLS numbers, for various reasons. One reason is that the BLS is adjusting unemployment by industry, before aggregating them. The BLS also applies a more sophisticated modeling of trading days and outliers. For details, see US Bureau of Labor Statistics (2016).
+# save(dsmonthly, file = "dsmonthly.RData")
+#
+# dmonthly[, c(3:8)] <-
+#   lapply(dsmonthly, function(s)
+#     final(s)) #replace original series with seasonally adjusted series
+# save(dmonthly, file = "dmonthly_seasonally_adjusted_1976_2020.RData")
+```
+
+
+
+```{r message=FALSE, warning=FALSE}
+library(zoo)
+library(xts)
+library(lubridate)
+library(stringr)
+library(ggthemes)
+library(plotly)
+
+load("dmonthly_seasonally_adjusted.RData") #the data is first generated and then loaded to create the output document due to data size
+
+dmonthly <- dmonthly %>%
+  mutate(
+    unemployment_rate_men = formattable::percent(as.numeric(unemployment_rate_men), 1),
+    unemployment_rate_women = formattable::percent(as.numeric(unemployment_rate_women), 1)
+  )
+
+p <-
+  ggplot(dmonthly, aes(time)) + geom_smooth(
+    aes(y = unemployment_rate_women,
+        #linetype = "Unemployment Rate",
+        color = "Women"),
+    linetype = "dotted",
+    method = "lm",
+    se = FALSE
+  ) +
+  geom_smooth(
+    aes(y = unemployment_rate_men,
+        color = "Men"),
+    linetype = "dotted",
+    method = "lm",
+    se = FALSE
+  ) +
+  
+  
+  geom_line(aes(y = unemployment_rate_women,
+                color = "Women")) +
+  geom_line(aes(y = unemployment_rate_men,
+                color = "Men")) +
+  labs(title = "Fig 1. Seasonally Adjusted Unemployment Rates for Men and Women Ages 16-64, 1976-2020") +
+  
+  scale_y_continuous('Rate', labels = scales::percent_format()) +
+  xlab("") +
+  theme(legend.title = element_blank())
+
+
+ggplotly(p,
+         tooltip = c("y", "x"),
+         height = 400,
+         width = 800)
+```
+
+#### Table 1. Seasonally Adjusted Unemployment Rates for Men and Women Ages 16-64, 1976-2021
+
+
+```{r message=FALSE, warning=FALSE}
+library(formattable)
+library(kableExtra)
+library(DT)
+
+tab <-
+  dmonthly  %>% mutate(
+    year = as.integer(year),
+    month_num = month,
+    month = month.abb[month],
+    unemployment_rate_men = round(as.numeric(unemployment_rate_men), 3),
+    unemployment_rate_women = round(as.numeric(unemployment_rate_women), 3)
+  ) %>% select(c(year, month_num, month, unemployment_rate_men, unemployment_rate_women))
+
+
+
+DT::datatable(
+  tab,
+  colnames = c(
+    "Year",
+    "Month Number",
+    "Month",
+    "Male Unemployment Rate",
+    "Female Unemployment Rate"
+  ),
+  rownames = FALSE,
+  filter = "top",
+  extensions = 'Buttons',
+  
+  options = list(dom = 'Blfrtip',
+                 buttons = c('copy', 'csv', 'excel'))
+) %>% formatPercentage(c("unemployment_rate_men", "unemployment_rate_women"), 1)
+```
+*Source: Current Population Survey  [-@ipums2020]*
+
+
+
+### Appendix: Seasonal Adjustment of Unemployment Rates {#appendix}
+
+The monthly unemployment numbers calculated by the U.S. Bureau of Labor Statistics and reported in the news are typically seasonally adjusted. Seasonal adjustment attempts to measure and remove the influences of predictable seasonal patterns to meaningfully compare monthly data.
+
+I estimate the time series models of the male and female unemployment rates to identify the seasonal components of the series using the R package [seasonal](https://cran.r-project.org/web/packages/seasonal) [@seasonal2018]. The package interfaces with the X-13 ARIMA-SEATS software developed by the US Census Bureau. The seasonal adjustment methodology is described in @bls2018. This methodology is used by the Bureau of Labor Statistics to calculate official seasonally adjusted unemployment numbers.
+
+The models identified positive level shifts in the male and female labor force participation rates in March and April 2020. I plot the output of the model for male labor force participation rate to illustrate the seasonal adjustment process. 
+
+ Figure 2 shows the original male labor force participation rate (black) and the seasonally adjusted series (red). The level shifts identified by the model are marked as "LS".
+
+
+```{r}
+library(seasonal)
+load("dsmonthly.RData")
+plot(
+  dsmonthly$unemployment_rate_men,
+  main = "Fig 2. Male Unemployment Rate: Original and Seasonally Adjusted",
+  ylim = c(0.03, 0.14),
+  ylab = "Male Unemployment Rate"
+)
+```
+
+*Source: Current Population Survey, 1976–2021*
+
+Figure 3 shows the detrended seasonal component (red) and the combined seasonal and irregular component (blue) of the male unemployment rate. The straight lines are the average seasonal components over the whole sample period. Unemployment peaks in January–February and is smallest in August–October. <!--There is no clear change in the seasonality of unemployment rate during the 1976–2021 period.-->
+
+
+
+```{r}
+monthplot(
+  dsmonthly$unemployment_rate_men,
+  labels = c(
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec"
+  ),
+  main = "Fig. 3. Seasonal and Irregular Components of Male Unempl. Rate"
+)
+```
+
+*Source: Current Population Survey, 1976–2021*
+
+<a href="#top">Back to top</a>
+
+### References
+
+
+<!--In the [Part II of the analysis](https://rpubs.com/elenas70/labormarket2020part2) I examine the geographic distribution of the rise in unemployment throughout 2020 and discuss the reasons why some regions have been more impacted than others].-->
