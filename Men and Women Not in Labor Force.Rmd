@@ -24,9 +24,9 @@ options(scipen = 999, digits = 2)
 ```
 
 
-<!--[<font size="4">`r icons::fontawesome("github")`</font>](https://github.com/elenas70/us_labor_market_history)-->
-[<font size="4">`r icons::fontawesome("linkedin")`</font>](https://www.linkedin.com/in/estolpovsky/)
 [<font size="4">EconBlog</font>](https://elenas70.github.io/econblog/)
+[<font size="4">`r icons::fontawesome("github")`</font>](https://github.com/elenas70/us_labor_market_history)
+[<font size="4">`r icons::fontawesome("linkedin")`</font>](https://www.linkedin.com/in/estolpovsky/)
 
 ### Changes in Labor Force Participation Since the 1970s
 
@@ -36,9 +36,9 @@ The gender gap in labor force participation rates fell from 33 percentage points
 
 During 1976–1988 the proportion of women that chose not to enter the labor force due to housework responsibilities decreased rapidly. This explains the rise in the labor force participation rate of women during this period. The increase in disability and early retirement among working-age men and women since 1994 contributed to the fall in the labor force participation of men and to the stagnation for women in the later part of the 1976–2021 period. 
 
-The 2007–2009 recession had a prolonged effect on the labor market. Many workers faced unemployment, and some of them exited the labor force when their unemployment benefits expired. The lack of labor market opportunities limited the ability of workers to enter the labor force for the first time, re-enter the labor force after an employment gap, and change career paths. We can see these effects in the falling labor force participation rates for men and women from 2009 to mid 2010s. The economic recovery led to the rise in labor force participation rates during 2015–2020.
+The 2007–2009 recession had a prolonged impact on the labor market. Many workers faced unemployment, and some of them exited the labor force when their unemployment benefits expired. The lack of labor market opportunities limited the ability of workers to enter the labor force for the first time, re-enter the labor force after an employment gap, and change career paths. We can see these effects in the falling labor force participation rates for men and women from 2009 to mid 2010s. The economic recovery led to the rise in labor force participation rates from 2015 until March 2020.
 
-The COVID pandemic, restrictions on businesses and school closures caused a sharp drop in labor force participation rates of 3 to 4 percentage points in April of 2020. The rates have partially recovered but were still about 2 percentage points below the pre-pandemic level in February 2021. The COVID recession may have a long-term impact on labor force participation similar to that of the Great Recession. When government unemployment benefit programs expire, men and women unable to find a job will be listed as out of the labor force, leading to a drop in labor force participation rates. 
+The COVID pandemic, restrictions on businesses and school and childcare closures caused a sharp drop in labor force participation rates of 3 to 4 percentage points in April of 2020. The rates have partially recovered but were still 1–2 percentage points below the pre-pandemic level in March 2021. The COVID recession may have a long-term impact on labor force participation similar to that of the Great Recession. When government unemployment benefit programs expire, men and women unable to find a job will be listed as out of the labor force, leading to a drop in labor force participation rates. 
 
 ### The Data From the Monthly Current Population Survey
 
@@ -54,10 +54,10 @@ Labor force participation rate of working-age men declined from 88% to 82% betwe
 
 ```{r include=FALSE}
 # # I generate the tables from the raw CPS data first, save them, and then load them to create the graphs and tables. This reduces the time to generate the html output.
-
+# 
 # library(ipumsr)
 # memory.limit(10000000)
-# ddi <- read_ipums_ddi("cps_00017.xml")
+# ddi <- read_ipums_ddi("cps_00019.xml")
 # d <- read_ipums_micro(ddi)
 ```
 
@@ -133,7 +133,7 @@ Labor force participation rate of working-age men declined from 88% to 82% betwe
 # 
 # dmonthly$time <-
 #   seq(from = as.Date("1976/1/1"),
-#       to = as.Date("2021/2/1"),
+#       to = as.Date("2021/3/1"),
 #       by = "month") %>% as.yearmon()
 # 
 # save(dmonthly, file = "dmonthly.RData")

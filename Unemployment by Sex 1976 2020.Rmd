@@ -23,12 +23,12 @@ options(scipen = 999, digits = 2)
 
 ```
 
-
-<!--[<font size="4">`r icons::fontawesome("github")`</font>](https://github.com/elenas70/us_labor_market_history)-->
-[<font size="4">`r icons::fontawesome("linkedin")`</font>](https://www.linkedin.com/in/estolpovsky/)
 [<font size="4">EconBlog</font>](https://elenas70.github.io/econblog/)
+[<font size="4">`r icons::fontawesome("github")`</font>](https://github.com/elenas70/us_labor_market_history)
+[<font size="4">`r icons::fontawesome("linkedin")`</font>](https://www.linkedin.com/in/estolpovsky/)
 
-The 2020 recession was different from past U.S. recessions in its impact on employment opportunities for men and women. In 2020 unemployment rates rose more rapidly, reached higher levels, and fell quicker than during any of the the past recessions since 1976. In 2020 peak unemployment rate was higher for women than for men. Past recessions since 1976 were associated with higher unemployment among men. In February 2021 seasonally adjusted unemployment rates for both men and women converged at about 6%, 2–3 percentage points above the pre-pandemic levels. 
+
+The 2020 recession was different from past U.S. recessions in its impact on employment opportunities for men and women. In 2020 unemployment rates rose more rapidly, reached higher levels, and fell quicker than during any of the the past recessions since 1976. In 2020 peak unemployment rate was higher for women than for men. Past recessions since 1976 were associated with higher unemployment among men. In March 2021 seasonally adjusted unemployment rates for both men and women converged at about 6%, 2–3 percentage points above the pre-pandemic levels. 
 
 ### Current Population Survey Data and Methodology
 
@@ -54,7 +54,7 @@ The increase in unemployment in 2020 is unprecedented in its abruptness. Before 
 
 During past recessions unemployment affected men more then women. For instance, after the 2008-2009 Great Recession male unemployment rate reached 11%, while female unemployment rate was up to 9%. The 2020 recession was different. In April 2020 unemployment rate among women was 4 percentage points above that of men. 
 
-The rapid increase in unemployment was followed by a similarly rapid recovery. The male and female labor force participation rates converged and were at about 6% in February 2021. Seasonal adjustment of unemployment rates may masks the signs of the slowdown in the recovery in the labor market since the end of 2020 as the persistently high unemployment is attributed to the effect of winter seasonality. See @Stolpovsky12021 for the unadjusted unemployment and labor force participation rates during 2020–2021. 
+The rapid increase in unemployment was followed by a similarly rapid recovery. The male and female labor force participation rates converged by June 2020 and were declining steadily, reaching 6% in March 2021. Seasonal adjustment of unemployment rates masks the slowdown in the recovery in the labor market since December 2020 observed in the unadjusted data [@Stolpovsky12021]. The seasonal adjustment process attributes persistently high unemployment to the effect of the winter season typically associated with higher unemployment.
 
 ```{r include=FALSE}
 #I generate the tables from the raw CPS data first, save them, and then load them to create the graphs and tables. This reduces the time to generate the html output.
